@@ -1,0 +1,111 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+import qualified Data.Map as Map
+import Data.Map (Map)
+import Data.Text (Text)
+import Data.Time
+import System.IO
+
+-- Type Definitions
+type UserID     = String
+type ProposalID = Int
+type Amount     = Integer
+type Vote       = Bool  -- True = Yes, False = No
+
+-- Proposal Structure
+data Proposal = Proposal
+  { proposalID    :: ProposalID
+  , description   :: Text
+  , votesFor      :: Amount
+  , votesAgainst  :: Amount
+  , executed      :: Bool
+  , deadline      :: UTCTime
+  } deriving (Show)
+
+-- Governance State
+data Governance = Governance
+  { proposals      :: Map ProposalID Proposal
+  , userBalances   :: Map UserID Amount
+  , nextProposalID :: ProposalID
+  } deriving (Show)
+
+-- Initial Governance State
+initialGovernance :: Governance
+initialGovernance = Governance
+  { proposals = Map.empty
+  , userBalances = Map.fromList [("Eze", 1000), ("Victor", 500), ("Saviour", 300)]
+  , nextProposalID = 1
+  }
+
+-- Fixed Proposal Deadline
+fixedDeadline :: IO UTCTime
+fixedDeadline = parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ" "2025-07-02T12:00:00Z"
+
+-- Create Proposal
+createProposal :: Governance -> Text -> IO (Either String Governance)
+createProposal gov desc = do
+  expiry <- fixedDeadline
+  let pid = nextProposalID gov
+      prop = Proposal pid desc 0 0 False expiry
+      updatedProposals = Map.insert pid prop (proposals gov)
+  return $ Right gov { proposals = updatedProposals, nextProposalID = pid + 1 }
+
+-- Vote on Proposal
+voteOnProposal :: Governance -> UserID -> ProposalID -> Vote -> IO (Either String Governance)
+voteOnProposal gov user pid vote =
+  case Map.lookup pid (proposals gov) of
+    Nothing -> return $ Left "Proposal not found"
+    Just p -> do
+      now <- getCurrentTime
+      if now > deadline p
+        then return $ Left "Execution failed because you voted late"
+        else
+          let weight = Map.findWithDefault 0 user (userBalances gov)
+              updatedProp = if vote
+                            then p { votesFor = votesFor p + weight }
+                            else p { votesAgainst = votesAgainst p + weight }
+              updatedProposals = Map.insert pid updatedProp (proposals gov)
+          in return $ Right gov { proposals = updatedProposals }
+
+-- Execute Proposal
+executeProposal :: Governance -> ProposalID -> IO (Either String Governance)
+executeProposal gov pid =
+  case Map.lookup pid (proposals gov) of
+    Nothing -> return $ Left "Proposal not found"
+    Just p -> do
+      now <- getCurrentTime
+      if now > deadline p
+        then return $ Left "No longer voting"
+        else if executed p
+             then return $ Left "Execution failed: Already executed"
+             else
+               let totalVotes = votesFor p + votesAgainst p
+                   approval = if totalVotes == 0 then 0 else (votesFor p * 100) `div` totalVotes
+               in if totalVotes >= 500 && approval >= 60
+                  then let updated = p { executed = True }
+                           updatedProps = Map.insert pid updated (proposals gov)
+                       in return $ Right gov { proposals = updatedProps }
+                  else return $ Left "Execution failed: you voted late"
+
+-- Main Simulation
+main :: IO ()
+main = do
+  let gov0 = initialGovernance
+  Right gov1 <- createProposal gov0 "Fund open-source dev project"
+
+  -- Vote only before 2nd July 2025 12:00PM GMT
+  now <- getCurrentTime
+  deadline <- fixedDeadline
+
+  if now < deadline
+    then do
+      Right gov2 <- voteOnProposal gov1 "Victor" 1 False
+      Right gov3 <- voteOnProposal gov2 "Saviour" 1 True
+
+      putStrLn "⏳ Trying to execute proposal..."
+      result <- executeProposal gov3 1
+      case result of
+        Left err -> putStrLn $ "❌ " ++ err
+        Right finalGov -> putStrLn "✅ Proposal executed!"
+    else
+      putStrLn "❌ Execution failed because you voted late"
