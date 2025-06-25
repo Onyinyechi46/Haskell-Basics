@@ -1,116 +1,150 @@
--- Onyinyechi Eze
--- 25th June. 2025
 {-# LANGUAGE OverloadedStrings #-}
+
+-- Imports
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
-import Control.Monad (when)
 
--- Types
-type UserID = String
+-- Type Synonyms
+type UserID     = String
 type ProposalID = Int
-type Amount = Integer
-type Vote = Bool -- True = Yes, False = No
+type Amount     = Integer
+type Vote       = Bool  -- True = Yes, False = No
 
--- Proposal Definition
+-- Data Types
+-- | Represents a single governance proposal.
 data Proposal = Proposal
-  { proposalID :: ProposalID
-  , description :: Text
-  , amount :: Amount
-  , recipient :: UserID
-  , votesFor :: Amount
-  , votesAgainst :: Amount
-  , executed :: Bool
+  { proposalID    :: ProposalID
+  , description   :: Text
+  , amount        :: Amount
+  , recipient     :: UserID
+  , votesFor      :: Amount
+  , votesAgainst  :: Amount
+  , executed      :: Bool
   } deriving (Show)
 
--- Governance State
+-- | Global state of the governance system.
 data Governance = Governance
-  { proposals :: Map ProposalID Proposal
-  , userBalances :: Map UserID Amount
-  , treasury :: Amount
+  { proposals      :: Map ProposalID Proposal
+  , userBalances   :: Map UserID Amount
+  , treasury       :: Amount
   , nextProposalID :: ProposalID
   } deriving (Show)
 
--- Initial State
+-- | Initial governance setup with predefined users and funds.
 initialGovernance :: Governance
 initialGovernance = Governance
-  { proposals = Map.empty
-  , userBalances = Map.fromList [("Alice", 1000), ("Bob", 500), ("Charlie", 300)]
-  , treasury = 10000
+  { proposals      = Map.empty
+  , userBalances   = Map.fromList
+      [ ("Eze",     1000)
+      , ("Victor",   500)
+      , ("Saviour",  300)
+      ]
+  , treasury       = 10000
   , nextProposalID = 1
   }
 
--- Create a new proposal
-createProposal :: Governance -> UserID -> Text -> Amount -> UserID -> Either String Governance
-createProposal gov userId description amount recipient =
-  if amount > treasury gov
-  then Left "Insufficient treasury funds"
-  else
-    let newProposal = Proposal
-          { proposalID = nextProposalID gov
-          , description = description
-          , amount = amount
-          , recipient = recipient
-          , votesFor = 0
-          , votesAgainst = 0
-          , executed = False
-          }
-        updatedProposals = Map.insert (nextProposalID gov) newProposal (proposals gov)
-        updatedNextID = nextProposalID gov + 1
-    in Right $ gov
-         { proposals = updatedProposals
-         , nextProposalID = updatedNextID
-         }
+--------------------------------------------------------------------------------
+-- Governance Logic
+--------------------------------------------------------------------------------
 
--- Vote on a proposal
-voteOnProposal :: Governance -> UserID -> ProposalID -> Vote -> Either String Governance
-voteOnProposal gov userId proposalId vote =
-  case (Map.lookup userId (userBalances gov), Map.lookup proposalId (proposals gov)) of
-    (Just balance, Just proposal) ->
-      let weight = balance
-          updatedProposal = if vote
-                            then proposal { votesFor = votesFor proposal + weight }
-                            else proposal { votesAgainst = votesAgainst proposal + weight }
-          updatedProposals = Map.insert proposalId updatedProposal (proposals gov)
-      in Right $ gov { proposals = updatedProposals }
+-- | Create a new spending proposal.
+createProposal
+  :: Governance -> UserID -> Text -> Amount -> UserID
+  -> Either String Governance
+createProposal gov _ desc amt recipient =
+  if amt > treasury gov
+    then Left "Not enough funds in treasury"
+    else
+      let pid        = nextProposalID gov
+          newProp    = Proposal pid desc amt recipient 0 0 False
+          updatedGov = gov
+            { proposals      = Map.insert pid newProp (proposals gov)
+            , nextProposalID = pid + 1
+            }
+      in Right updatedGov
+
+-- | Cast a vote on an existing proposal.
+voteOnProposal
+  :: Governance -> UserID -> ProposalID -> Vote
+  -> Either String Governance
+voteOnProposal gov user pid vote =
+  case (Map.lookup user (userBalances gov), Map.lookup pid (proposals gov)) of
+    (Just balance, Just prop) ->
+      let updatedProp =
+            if vote
+              then prop { votesFor     = votesFor prop + balance }
+              else prop { votesAgainst = votesAgainst prop + balance }
+
+          updatedGov = gov
+            { proposals = Map.insert pid updatedProp (proposals gov) }
+
+      in Right updatedGov
+
     _ -> Left "User or proposal not found"
 
--- Execute a proposal
-executeProposal :: Governance -> ProposalID -> Either String Governance
-executeProposal gov proposalId =
-  case Map.lookup proposalId (proposals gov) of
-    Just proposal ->
-      let totalVotes = votesFor proposal + votesAgainst proposal
-          quorum = 500 -- Minimum total votes required
-          threshold = 60 -- Minimum approval percentage
-          approvalRate = (votesFor proposal * 100) `div` totalVotes
-      in if totalVotes >= quorum && approvalRate >= threshold && not (executed proposal)
-         then
-           let updatedTreasury = treasury gov - amount proposal
-               updatedProposal = proposal { executed = True }
-               updatedProposals = Map.insert proposalId updatedProposal (proposals gov)
-               updatedBalances = Map.adjust (+ amount proposal) (recipient proposal) (userBalances gov)
-           in Right $ gov
-                { treasury = updatedTreasury
-                , proposals = updatedProposals
-                , userBalances = updatedBalances
-                }
-         else Left "Proposal did not pass or already executed"
+-- | Execute a proposal if it meets quorum and approval conditions.
+executeProposal
+  :: Governance -> ProposalID
+  -> Either String Governance
+executeProposal gov pid =
+  case Map.lookup pid (proposals gov) of
     Nothing -> Left "Proposal not found"
 
+    Just prop ->
+      let totalVotes = votesFor prop + votesAgainst prop
+          quorum      = 500
+          approval    = if totalVotes > 0
+                          then (votesFor prop * 100) `div` totalVotes
+                          else 0
+
+      in if totalVotes >= quorum
+            && approval >= 60
+            && not (executed prop)
+         then
+           let updatedBalances = Map.adjust
+                 (+ amount prop)
+                 (recipient prop)
+                 (userBalances gov)
+
+               updatedProp = prop { executed = True }
+
+               updatedGov = gov
+                 { treasury     = treasury gov - amount prop
+                 , userBalances = updatedBalances
+                 , proposals    = Map.insert pid updatedProp (proposals gov)
+                 }
+
+           in Right updatedGov
+         else Left "Proposal failed or already executed"
+
+--------------------------------------------------------------------------------
 -- Example Usage
+--------------------------------------------------------------------------------
+
 main :: IO ()
 main = do
-  let gov = initialGovernance
-  -- Create a proposal
-  let Right gov1 = createProposal gov "Alice" "Fund community project" 1000 "Bob"
-  -- Vote on the proposal
-  let Right gov2 = voteOnProposal gov1 "Alice" 1 True
-  let Right gov3 = voteOnProposal gov2 "Bob" 1 False
-  let Right gov4 = voteOnProposal gov3 "Charlie" 1 True
-  -- Execute the proposal
-  case executeProposal gov4 1 of
-    Right gov5 -> do
-      putStrLn "Proposal executed successfully!"
-      print gov5
-    Left err -> putStrLn $ "Error: " ++ err
+  let gov0 = initialGovernance
+
+  -- Step 1: Eze creates a proposal to fund Victor
+  case createProposal gov0 "Eze" "Support open-source project" 1000 "Victor" of
+    Left err -> putStrLn $ "Proposal Creation Error: " ++ err
+    Right gov1 -> do
+
+      -- Step 2: All users cast votes
+      let result = do
+            gov2 <- voteOnProposal gov1 "Eze"     1 True
+            gov3 <- voteOnProposal gov2 "Victor"  1 False
+            gov4 <- voteOnProposal gov3 "Saviour" 1 True
+            return gov4
+
+      case result of
+        Left err -> putStrLn $ "Voting Error: " ++ err
+        Right govFinal ->
+
+          -- Step 3: Try to execute the proposal
+          case executeProposal govFinal 1 of
+            Left err     -> putStrLn $ "Execution Error: " ++ err
+            Right govEnd -> do
+              putStrLn "✅ Proposal executed successfully!"
+              print govEnd
