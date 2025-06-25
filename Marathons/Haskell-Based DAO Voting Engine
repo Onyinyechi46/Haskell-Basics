@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- DAO Voting System with Delegation and Voting History Logging
--- Author: Princess Eze-Nwaobasi
+-- Author: Onyinyechi Eze
 -- Date: June 25, 2025
 -- Language: Haskell (Off-chain simulation for Plutus-style governance)
 
