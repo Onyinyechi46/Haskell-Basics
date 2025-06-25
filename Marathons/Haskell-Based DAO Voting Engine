@@ -1,0 +1,118 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+-- DAO Voting System with Delegation and Voting History Logging
+-- Author: Princess Eze-Nwaobasi
+-- Date: June 25, 2025
+-- Language: Haskell (Off-chain simulation for Plutus-style governance)
+
+import qualified Data.Map as Map
+import Data.Map (Map)
+import Data.Text (Text)
+
+-- Type Definitions
+type UserID     = String
+type ProposalID = Int
+type Amount     = Integer
+type Vote       = Bool  -- True = Yes, False = No
+
+-- Data Structures
+
+data VoteLog = VoteLog
+  { voter     :: UserID
+  , votedFor  :: ProposalID
+  , voteType  :: Vote
+  , weight    :: Amount
+  } deriving (Show)
+
+data Proposal = Proposal
+  { proposalID    :: ProposalID
+  , description   :: Text
+  , votesFor      :: Amount
+  , votesAgainst  :: Amount
+  , executed      :: Bool
+  } deriving (Show)
+
+data Governance = Governance
+  { proposals      :: Map ProposalID Proposal
+  , userBalances   :: Map UserID Amount
+  , delegations    :: Map UserID UserID
+  , voteHistory    :: [VoteLog]
+  , nextProposalID :: ProposalID
+  } deriving (Show)
+
+initialGovernance :: Governance
+initialGovernance = Governance
+  { proposals = Map.empty
+  , userBalances = Map.fromList [("Eze", 1000), ("Victor", 500), ("Saviour", 300)]
+  , delegations = Map.empty
+  , voteHistory = []
+  , nextProposalID = 1
+  }
+
+createProposal :: Governance -> Text -> Either String Governance
+createProposal gov desc =
+  let pid = nextProposalID gov
+      proposal = Proposal pid desc 0 0 False
+      updatedProposals = Map.insert pid proposal (proposals gov)
+  in Right gov { proposals = updatedProposals, nextProposalID = pid + 1 }
+
+delegateVotes :: Governance -> UserID -> UserID -> Either String Governance
+delegateVotes gov from to =
+  if Map.member from (userBalances gov) && Map.member to (userBalances gov)
+    then Right gov { delegations = Map.insert from to (delegations gov) }
+    else Left "Invalid users for delegation"
+
+resolveVoter :: Governance -> UserID -> UserID
+resolveVoter gov user =
+  case Map.lookup user (delegations gov) of
+    Just delegate -> resolveVoter gov delegate
+    Nothing       -> user
+
+voteOnProposal :: Governance -> UserID -> ProposalID -> Vote -> Either String Governance
+voteOnProposal gov user pid vote =
+  case Map.lookup pid (proposals gov) of
+    Nothing -> Left "Proposal not found"
+    Just prop ->
+      let effVoter = resolveVoter gov user
+          weight   = Map.findWithDefault 0 user (userBalances gov)
+          logEntry = VoteLog user pid vote weight
+          updatedProp = if vote
+                        then prop { votesFor     = votesFor prop + weight }
+                        else prop { votesAgainst = votesAgainst prop + weight }
+          updatedProposals = Map.insert pid updatedProp (proposals gov)
+          updatedHistory   = logEntry : voteHistory gov
+      in Right gov { proposals = updatedProposals, voteHistory = updatedHistory }
+
+executeProposal :: Governance -> ProposalID -> IO (Either String Governance)
+executeProposal gov pid =
+  case Map.lookup pid (proposals gov) of
+    Nothing -> return $ Left "Proposal not found"
+    Just prop -> do
+      let totalVotes = votesFor prop + votesAgainst prop
+          quorum     = 500
+          approval   = if totalVotes == 0 then 0 else (votesFor prop * 100) `div` totalVotes
+      putStrLn $ "Debug: Total Votes = " ++ show totalVotes
+      putStrLn $ "Debug: Approval Rate = " ++ show approval
+      if totalVotes >= quorum && approval >= 60 && not (executed prop)
+        then
+          let updatedProp = prop { executed = True }
+              updatedProposals = Map.insert pid updatedProp (proposals gov)
+          in return $ Right gov { proposals = updatedProposals }
+        else return $ Left "Proposal did not pass or was already executed"
+
+main :: IO ()
+main = do
+  let gov0 = initialGovernance
+  let Right gov1 = createProposal gov0 "Fund developer education project"
+  let Right gov2 = delegateVotes gov1 "Eze" "Saviour"
+  let Right gov3 = voteOnProposal gov2 "Victor" 1 False
+  let Right gov4 = voteOnProposal gov3 "Saviour" 1 True
+  result <- executeProposal gov4 1
+  case result of
+    Left err -> putStrLn $ "❌ Execution Error: " ++ err
+    Right finalGov -> do
+      putStrLn "✅ Proposal Executed Successfully!"
+      putStrLn "\n--- Final State ---"
+      print finalGov
+      putStrLn "\n--- Vote History ---"
+      mapM_ print (voteHistory finalGov)
