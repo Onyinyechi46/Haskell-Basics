@@ -3,7 +3,7 @@
 
 Welcome to the **Onchain Governance Marathon** — a hands-on coding challenge focused on building a basic decentralized governance system using Haskell!
 
-## 🏁 Goal
+## 🏁 Goal 
 
 Build a lightweight DAO voting engine in Haskell that supports:
 
