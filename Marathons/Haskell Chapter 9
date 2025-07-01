@@ -1,0 +1,108 @@
+-- HC9_AllTasks.hs
+
+-- HC9T1: Parametric Type Synonym
+type Entity a = (a, String)  -- (data, address)
+
+-- HC9T2: Parametric Data Type
+data Box a = Empty | Has a deriving Show
+
+-- HC9T3: Add Values in a Box (only if numeric)
+addN :: Num a => a -> Box a -> Box a
+addN _ Empty   = Empty
+addN n (Has x) = Has (n + x)
+
+-- HC9T4: Extract Value from a Box
+extract :: a -> Box a -> a
+extract def Empty   = def
+extract _   (Has x) = x
+
+-- HC9T5: Parametric Data Type with Record Syntax
+data Shape a
+  = Circle { radius :: Float, color :: a }
+  | Rectangle { width :: Float, height :: Float, color :: a }
+  deriving Show
+
+-- HC9T6: Recursive Tweet Data Type
+data Tweet = Tweet
+  { content  :: String
+  , likes    :: Int
+  , comments :: [Tweet]
+  } deriving Show
+
+-- HC9T7: Calculate Tweet Engagement
+engagement :: Tweet -> Int
+engagement (Tweet _ likes comments) = likes + sum (map engagement comments)
+
+-- HC9T8: Recursive Sequence Data Type
+data Sequence a = End | Node a (Sequence a) deriving Show
+
+-- HC9T9: Check for Element in Sequence
+elemSeq :: Eq a => a -> Sequence a -> Bool
+elemSeq _ End = False
+elemSeq e (Node x xs)
+  | e == x    = True
+  | otherwise = elemSeq e xs
+
+-- HC9T10: Binary Search Tree (BST)
+data BST a = EmptyBST
+           | NodeBST a (BST a) (BST a)
+           deriving Show
+
+-- Helper: Insert into BST
+insertBST :: Ord a => a -> BST a -> BST a
+insertBST val EmptyBST = NodeBST val EmptyBST EmptyBST
+insertBST val (NodeBST x left right)
+  | val < x   = NodeBST x (insertBST val left) right
+  | val > x   = NodeBST x left (insertBST val right)
+  | otherwise = NodeBST x left right
+
+-- Helper: Search in BST
+searchBST :: Ord a => a -> BST a -> Bool
+searchBST _ EmptyBST = False
+searchBST val (NodeBST x left right)
+  | val == x  = True
+  | val < x   = searchBST val left
+  | otherwise = searchBST val right
+
+-- === Main for Demonstration ===
+main :: IO ()
+main = do
+  putStrLn "== HC9T1 =="
+  print (("NFT", "0x123abc") :: Entity String)
+
+  putStrLn "\n== HC9T2 =="
+  print (Has 10 :: Box Int)
+  print (Empty :: Box Int)
+
+  putStrLn "\n== HC9T3 =="
+  print (addN 5 (Has 10))
+  print (addN 5 Empty)
+
+  putStrLn "\n== HC9T4 =="
+  print (extract 0 (Has 100))
+  print (extract 0 Empty)
+
+  putStrLn "\n== HC9T5 =="
+  let redCircle = Circle { radius = 4.5, color = "Red" }
+  let blueRect = Rectangle { width = 3, height = 6, color = "Blue" }
+  print redCircle
+  print blueRect
+
+  putStrLn "\n== HC9T6 & HC9T7 =="
+  let reply1 = Tweet "Nice!" 3 []
+  let reply2 = Tweet "Wow!" 2 []
+  let mainTweet = Tweet "Check this out!" 10 [reply1, reply2]
+  print mainTweet
+  print $ engagement mainTweet
+
+  putStrLn "\n== HC9T8 & HC9T9 =="
+  let seq1 = Node 1 (Node 2 (Node 3 End))
+  print seq1
+  print $ elemSeq 2 seq1
+  print $ elemSeq 5 seq1
+
+  putStrLn "\n== HC9T10 =="
+  let bst = foldr insertBST EmptyBST [8, 3, 10, 1, 6, 14]
+  print bst
+  print $ searchBST 6 bst
+  print $ searchBST 4 bst
