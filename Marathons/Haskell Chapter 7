@@ -1,0 +1,124 @@
+-- HC7_AllTasks.hs
+-- All Tasks: HC7T1 to HC7T10
+
+-- === Color Type and Instances ===
+
+data Color = Red | Green | Blue deriving (Show, Read, Bounded, Enum)
+
+-- HC7T1: Eq instance for Color
+instance Eq Color where
+  Red   == Red   = True
+  Green == Green = True
+  Blue  == Blue  = True
+  _     == _     = False
+
+-- HC7T2: Ord instance for Color
+instance Ord Color where
+  compare Red Green   = LT
+  compare Red Blue    = LT
+  compare Green Blue  = LT
+  compare c1 c2
+    | c1 == c2  = EQ
+    | otherwise = GT
+
+-- HC7T3: Function with Eq and Ord constraints
+compareValues :: (Eq a, Ord a) => a -> a -> a
+compareValues x y = if x >= y then x else y
+
+-- === Shape Type and Instances ===
+
+data Shape = Circle Double | Rectangle Double Double deriving (Eq)
+
+-- HC7T4: Show instance
+instance Show Shape where
+  show (Circle r) = "Circle " ++ show r
+  show (Rectangle w h) = "Rectangle " ++ show w ++ " " ++ show h
+
+-- HC7T4: Read instance
+instance Read Shape where
+  readsPrec _ input =
+    case words input of
+      ["Circle", r] ->
+        [(Circle (read r), "")]
+      ["Rectangle", w, h] ->
+        [(Rectangle (read w) (read h), "")]
+      _ -> []
+
+-- HC7T10 fix: Provide Ord instance for Shape based on area
+shapeArea :: Shape -> Double
+shapeArea (Circle r) = pi * r * r
+shapeArea (Rectangle w h) = w * h
+
+instance Ord Shape where
+  compare s1 s2 = compare (shapeArea s1) (shapeArea s2)
+
+-- HC7T5: squareArea using Num
+squareArea :: Num a => a -> a
+squareArea side = side * side
+
+-- HC7T6: circleCircumference using Integral and Floating
+circleCircumference :: (Floating a, Integral b) => b -> a
+circleCircumference radius = 2 * pi * fromIntegral radius
+
+-- HC7T7: Use Enum and Bounded for nextColor
+nextColor :: Color -> Color
+nextColor color
+  | color == maxBound = minBound
+  | otherwise         = succ color
+
+-- HC7T8: Parse Shape from String
+parseShape :: String -> Maybe Shape
+parseShape str = case reads str :: [(Shape, String)] of
+  [(shape, "")] -> Just shape
+  _             -> Nothing
+
+-- HC7T9: Describable type class
+class Describable a where
+  describe :: a -> String
+
+instance Describable Bool where
+  describe True  = "This is True"
+  describe False = "This is False"
+
+instance Describable Shape where
+  describe (Circle r)        = "A circle with radius " ++ show r
+  describe (Rectangle w h)   = "A rectangle of width " ++ show w ++ " and height " ++ show h
+
+-- HC7T10: describeAndCompare using Describable and Ord
+describeAndCompare :: (Describable a, Ord a) => a -> a -> String
+describeAndCompare x y = describe (if x >= y then x else y)
+
+-- === Main Test Driver ===
+
+main :: IO ()
+main = do
+  putStrLn "== HC7T1 & HC7T2 =="
+  print (Red == Red)
+  print (compare Green Blue)
+
+  putStrLn "\n== HC7T3 =="
+  print (compareValues 10 20)
+
+  putStrLn "\n== HC7T4 =="
+  print (Circle 5)
+  print (Rectangle 3 4)
+
+  putStrLn "\n== HC7T5 =="
+  print (squareArea 7)
+
+  putStrLn "\n== HC7T6 =="
+  print (circleCircumference (5 :: Int) :: Double)
+
+  putStrLn "\n== HC7T7 =="
+  print (nextColor Red)
+  print (nextColor Blue)
+
+  putStrLn "\n== HC7T8 =="
+  print (parseShape "Circle 10")
+  print (parseShape "Rectangle 4 5")
+  print (parseShape "Unknown")
+
+  putStrLn "\n== HC7T9 & HC7T10 =="
+  print (describe True)
+  print (describe (Circle 5))
+  print (describeAndCompare (Circle 4) (Circle 8))
