@@ -1,0 +1,108 @@
+-- HC11T1: Greet the User
+module HC11T1 where
+
+main :: IO ()
+main = do
+  putStrLn "What is your name?"
+  name <- getLine
+  putStrLn $ "Hello, " ++ name ++ "!"
+
+-- HC11T2: Count Characters in a Line
+module HC11T2 where
+
+main :: IO ()
+main = do
+  putStrLn "Enter a line:"
+  line <- getLine
+  print $ length line
+
+-- HC11T3: Double a Number
+module HC11T3 where
+
+main :: IO ()
+main = do
+  putStrLn "Enter a number:"
+  input <- getLine
+  let number = read input :: Int
+  print (number * 2)
+
+-- HC11T4: Concatenate Two Lines
+module HC11T4 where
+
+main :: IO ()
+main = do
+  putStrLn "Enter first line:"
+  line1 <- getLine
+  putStrLn "Enter second line:"
+  line2 <- getLine
+  putStrLn $ line1 ++ line2
+
+-- HC11T5: Repeat Until \"quit\"
+module HC11T5 where
+
+main :: IO ()
+main = loop
+  where
+    loop = do
+      putStrLn "Enter input (type 'quit' to stop):"
+      input <- getLine
+      if input == "quit"
+        then putStrLn "Goodbye!"
+        else do
+          putStrLn $ "You entered: " ++ input
+          loop
+
+-- HC11T6: Uppercase Converter
+module HC11T6 where
+
+import Data.Char (toUpper)
+
+main :: IO ()
+main = do
+  putStrLn "Enter a line:"
+  line <- getLine
+  putStrLn $ map toUpper line
+
+-- HC11T7: User Options
+module HC11T7 where
+
+main :: IO ()
+main = do
+  putStrLn "Choose an option:\n1. Greet\n2. Farewell"
+  option <- getLine
+  case option of
+    "1" -> putStrLn "Hello there!"
+    "2" -> putStrLn "Goodbye!"
+    _   -> putStrLn "Invalid option."
+
+-- HC11T8: Even or Odd Checker
+module HC11T8 where
+
+main :: IO ()
+main = do
+  putStrLn "Enter a number:"
+  input <- getLine
+  let n = read input :: Int
+  putStrLn $ if even n then "Even" else "Odd"
+
+-- HC11T9: Sum Two Numbers
+module HC11T9 where
+
+main :: IO ()
+main = do
+  putStrLn "Enter first number:"
+  a <- getLine
+  putStrLn "Enter second number:"
+  b <- getLine
+  let x = read a :: Int
+      y = read b :: Int
+  print (x + y)
+
+-- HC11T10: Reverse User Input
+module HC11T10 where
+
+main :: IO ()
+main = do
+  putStrLn "Enter a string:"
+  input <- getLine
+  putStrLn $ reverse input
