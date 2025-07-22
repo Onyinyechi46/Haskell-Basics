@@ -1,0 +1,61 @@
+-- HC20T1: safeDivide with Maybe Monad
+module HC20T1 where
+
+safeDivide :: Int -> Int -> Maybe Int
+safeDivide _ 0 = Nothing
+safeDivide x y = Just (x `div` y)
+
+main :: IO ()
+main = print (safeDivide 10 2)
+
+
+-- HC20T2: sequenceMaybe for List of Maybe
+module HC20T2 where
+
+sequenceMaybe :: [Maybe a] -> Maybe [a]
+sequenceMaybe = foldr (\x acc -> do {v <- x; vs <- acc; return (v:vs)}) (Just [])
+
+main :: IO ()
+main = print (sequenceMaybe [Just 1, Just 2, Just 3])
+
+
+-- HC20T3: Writer Monad Logging Calculator
+module HC20T3 where
+
+import Control.Monad.Writer
+
+type CalcLog = Writer [String] Int
+
+add :: Int -> Int -> CalcLog
+add x y = writer (x + y, ["Added " ++ show x ++ " and " ++ show y])
+
+main :: IO ()
+main = print (runWriter (add 2 3))
+
+
+-- HC20T4: countChars with State Monad
+module HC20T4 where
+
+import Control.Monad.State
+
+countChars :: Char -> String -> Int
+countChars c str = execState (mapM_ (\ch -> when (ch == c) (modify (+1))) str) 0
+
+main :: IO ()
+main = print (countChars 'a' "banana")
+
+
+-- HC20T5: Reader Monad for Configurable Greeting
+module HC20T5 where
+
+import Control.Monad.Reader
+
+type Config = String
+
+greeting :: Reader Config String
+greeting = do
+  name <- ask
+  return ("Hello, " ++ name ++ "!")
+
+main :: IO ()
+main = print (runReader greeting "Alice")
