@@ -1,0 +1,144 @@
+-- HC15T1: Handle Exceptions for File Reading and Velocity Calculation
+module HC15T1 where
+
+import Control.Exception
+
+main :: IO ()
+main = do
+  result <- try (readFile "data.txt") :: IO (Either IOException String)
+  case result of
+    Left ex  -> print ("Error reading file: " ++ show ex)
+    Right content -> print ("File content: " ++ take 100 content)
+
+
+-- HC15T2: Self-Driving AI Car System
+module HC15T2 where
+
+main :: IO ()
+main = do
+  let trafficLight = "Green"
+  print ("AI Decision: " ++ case trafficLight of
+    "Red" -> "Stop"
+    "Yellow" -> "Slow down"
+    "Green" -> "Go"
+    _ -> "Unknown")
+
+
+-- HC15T3: Custom Exception for Traffic Light Errors
+module HC15T3 where
+
+import Control.Exception
+import Data.Typeable
+
+data TrafficLightException = InvalidLight String deriving (Show, Typeable)
+instance Exception TrafficLightException
+
+checkLight :: String -> IO ()
+checkLight "Red" = print "Stopping"
+checkLight "Yellow" = print "Slowing"
+checkLight "Green" = print "Going"
+checkLight other = throwIO (InvalidLight other)
+
+main :: IO ()
+main = checkLight "Blue"
+
+
+-- HC15T4: Exception Handler for Traffic Light
+module HC15T4 where
+
+import HC15T3
+import Control.Exception
+
+main :: IO ()
+main = handle handler (checkLight "Blue")
+  where handler (InvalidLight msg) = print ("Caught traffic light error: " ++ msg)
+
+
+-- HC15T5: Safe Division Using Maybe
+module HC15T5 where
+
+safeDiv :: Double -> Double -> Maybe Double
+safeDiv _ 0 = Nothing
+safeDiv x y = Just (x / y)
+
+main :: IO ()
+main = print (safeDiv 10 0)
+
+
+-- HC15T6: Safe Input Parsing with readMaybe
+module HC15T6 where
+
+import Text.Read (readMaybe)
+
+main :: IO ()
+main = do
+  let input = "123a"
+  let parsed = readMaybe input :: Maybe Int
+  print parsed
+
+
+-- HC15T7: Velocity Calculation with Optionals and Parsing Handling
+module HC15T7 where
+
+import Text.Read (readMaybe)
+
+calculateVelocity :: Double -> Double -> Maybe Double
+calculateVelocity d t = if t == 0 then Nothing else Just (d / t)
+
+main :: IO ()
+main = do
+  let dStr = "100"
+  let tStr = "0"
+  let md = readMaybe dStr :: Maybe Double
+  let mt = readMaybe tStr :: Maybe Double
+  print $ do
+    d <- md
+    t <- mt
+    calculateVelocity d t
+
+
+-- HC15T8: Division with Either for Detailed Errors
+module HC15T8 where
+
+safeDiv :: Double -> Double -> Either String Double
+safeDiv _ 0 = Left "Cannot divide by zero"
+safeDiv x y = Right (x / y)
+
+main :: IO ()
+main = print (safeDiv 10 0)
+
+
+-- HC15T9: Try Function for File IO Exceptions
+module HC15T9 where
+
+import Control.Exception
+import System.IO.Error
+
+main :: IO ()
+main = do
+  result <- try (readFile "nonexistent.txt") :: IO (Either IOError String)
+  case result of
+    Left e  -> print ("Caught IO error: " ++ show e)
+    Right c -> print ("File content: " ++ take 100 c)
+
+
+-- HC15T10: Hybrid Error Handling with Either and IO
+module HC15T10 where
+
+import Control.Exception
+import Text.Read (readMaybe)
+
+velocity :: Double -> Double -> Either String Double
+velocity _ 0 = Left "Time cannot be zero"
+velocity d t = Right (d / t)
+
+main :: IO ()
+main = do
+  let dist = readMaybe "100" :: Maybe Double
+  let time = readMaybe "0" :: Maybe Double
+  case (dist, time) of
+    (Just d, Just t) ->
+      case velocity d t of
+        Left err -> print ("Velocity error: " ++ err)
+        Right v  -> print ("Velocity: " ++ show v)
+    _ -> print "Invalid input"
