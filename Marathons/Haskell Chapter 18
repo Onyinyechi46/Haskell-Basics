@@ -1,0 +1,114 @@
+-- HC18T1: mapToLower Function with fmap
+module HC18T1 where
+
+import Data.Char (toLower)
+
+mapToLower :: String -> String
+mapToLower = fmap toLower
+
+main :: IO ()
+main = print $ mapToLower "HELLO"
+
+
+-- HC18T2: Functor Instance for Tree
+module HC18T2 where
+
+data Tree a = Empty | Node a (Tree a) (Tree a) deriving (Show)
+
+instance Functor Tree where
+  fmap _ Empty = Empty
+  fmap f (Node x l r) = Node (f x) (fmap f l) (fmap f r)
+
+sampleTree :: Tree Int
+sampleTree = Node 1 (Node 2 Empty Empty) (Node 3 Empty Empty)
+
+main :: IO ()
+main = print $ fmap (*2) sampleTree
+
+
+-- HC18T3: incrementTreeValues Function
+module HC18T3 where
+
+import HC18T2 (Tree(..))
+
+incrementTreeValues :: Tree Int -> Tree Int
+incrementTreeValues = fmap (+1)
+
+sampleTree :: Tree Int
+sampleTree = Node 5 (Node 3 Empty Empty) (Node 7 Empty Empty)
+
+main :: IO ()
+main = print $ incrementTreeValues sampleTree
+
+
+-- HC18T4: mapToBits Function
+module HC18T4 where
+
+mapToBits :: [Bool] -> [Char]
+mapToBits = fmap (\b -> if b then '1' else '0')
+
+main :: IO ()
+main = print $ mapToBits [True, False, True]
+
+
+-- HC18T5: Functor Instance for Either
+module HC18T5 where
+
+instance Functor (Either e) where
+  fmap _ (Left e) = Left e
+  fmap f (Right x) = Right (f x)
+
+main :: IO ()
+main = do
+  print $ fmap (+1) (Right 5 :: Either String Int)
+  print $ fmap (+1) (Left "Error" :: Either String Int)
+
+
+-- HC18T6: applyToMaybe Function
+module HC18T6 where
+
+applyToMaybe :: (a -> b) -> Maybe a -> Maybe b
+applyToMaybe = fmap
+
+main :: IO ()
+main = print $ applyToMaybe (+10) (Just 5)
+
+
+-- HC18T7: fmapTuple Function
+module HC18T7 where
+
+fmapTuple :: (a -> b) -> (x, a) -> (x, b)
+fmapTuple = fmap
+
+main :: IO ()
+main = print $ fmapTuple length ("Age", "Thirty")
+
+
+-- HC18T8: identityLawCheck Function
+module HC18T8 where
+
+identityLawCheck :: (Functor f, Eq (f a)) => f a -> Bool
+identityLawCheck x = fmap id x == x
+
+main :: IO ()
+main = print $ identityLawCheck (Just 42)
+
+
+-- HC18T9: compositionLawCheck Function
+module HC18T9 where
+
+compositionLawCheck :: (Functor f, Eq (f c)) => (b -> c) -> (a -> b) -> f a -> Bool
+compositionLawCheck f g x = fmap (f . g) x == (fmap f . fmap g) x
+
+main :: IO ()
+main = print $ compositionLawCheck (*2) (+1) (Just 3)
+
+
+-- HC18T10: nestedFmap Function
+module HC18T10 where
+
+nestedFmap :: (a -> b) -> [[a]] -> [[b]]
+nestedFmap = fmap . fmap
+
+main :: IO ()
+main = print $ nestedFmap (+1) [[1,2], [3,4]]
