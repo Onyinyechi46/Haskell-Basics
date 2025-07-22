@@ -1,0 +1,115 @@
+-- HC14T1: Initialize a Cabal Project
+-- Use `cabal init` to generate the project structure
+-- File: app/Main.hs
+module Main where
+
+main :: IO ()
+main = putStrLn "Hello, Cabal!"
+
+-- HC14T2: Add Dependency and Print Random Number
+-- Add `random` to build-depends in .cabal file
+-- File: app/RandomMain.hs
+module RandomMain where
+import System.Random (randomRIO)
+
+main :: IO ()
+main = do
+  num <- randomRIO (1, 100)
+  putStrLn $ "Random number: " ++ show num
+
+-- HC14T3: NumericUnderscores Extension
+-- File: app/NumericUnderscores.hs
+{-# LANGUAGE NumericUnderscores #-}
+
+module NumericUnderscores where
+
+main :: IO ()
+main = do
+  let bigNumber = 1_000_000
+  putStrLn $ "Big number: " ++ show bigNumber
+
+-- HC14T4: TypeApplications Extension
+-- File: app/TypeAppMain.hs
+{-# LANGUAGE TypeApplications #-}
+
+module TypeAppMain where
+
+main :: IO ()
+main = do
+  let num = read @Int "42"
+  putStrLn $ "Parsed number: " ++ show num
+
+-- HC14T5: Pattern Matching with @
+-- File: app/PatternMatch.hs
+module PatternMatch where
+
+data Result a = Success a | Failure String
+
+processResult :: Result Int -> String
+processResult r@(Success val) = "Got value: " ++ show val ++ " from " ++ show r
+processResult (Failure msg) = "Error: " ++ msg
+
+main :: IO ()
+main = print $ processResult (Success 99)
+
+-- HC14T6: src and app structure
+-- Assume structure created: `src/Lib.hs`, `app/Main.hs`
+-- File: src/Lib.hs
+module Lib where
+
+greet :: String -> String
+greet name = "Hello, " ++ name ++ "!"
+
+-- File: app/Main.hs
+module Main where
+import Lib
+
+main :: IO ()
+main = putStrLn (greet "Cabal")
+
+-- HC14T7: Library Component
+-- Modify .cabal file to include a library stanza
+-- library
+--   exposed-modules:     Lib
+--   build-depends:       base >=4.7 && <5
+--   hs-source-dirs:      src
+--   default-language:    Haskell2010
+
+-- HC14T8: Character Frequency
+-- File: app/CharFrequency.hs
+module CharFrequency where
+import Data.List (group, sort)
+
+counts :: String -> [(Char, Int)]
+counts str = map (\g -> (head g, length g)) . group . sort $ str
+
+main :: IO ()
+main = print $ counts "haskell"
+
+-- HC14T9: PartialTypeSignatures
+-- File: app/PartialTypeSig.hs
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
+
+module PartialTypeSig where
+
+partial :: _ -> Int
+partial x = x + 1
+
+main :: IO ()
+main = print $ partial 9
+
+-- HC14T10: Cabal Test Suite
+-- File: test/Spec.hs
+module Main where
+import CharFrequency (counts)
+import Test.HUnit
+
+tests :: Test
+tests = TestList
+  [ "empty" ~: counts "" ~?= []
+  , "simple" ~: counts "aabbc" ~?= [('a',2),('b',2),('c',1)]
+  ]
+
+main :: IO ()
+main = runTestTT tests >>= print
