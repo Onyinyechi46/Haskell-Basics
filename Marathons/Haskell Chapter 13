@@ -1,0 +1,103 @@
+-- HC13T1: List Files in Directory
+module HC13T1 where
+
+import System.Directory
+
+main :: IO ()
+main = do
+  files <- listDirectory "."
+  print files
+
+-- HC13T2: Filter Files by Substring
+module HC13T2 where
+
+import System.Directory
+import Data.List (isInfixOf)
+
+main :: IO ()
+main = do
+  files <- listDirectory "."
+  let filtered = filter ("hs" `isInfixOf`) files
+  print filtered
+
+-- HC13T3: Sort and Return Filtered Files
+module HC13T3 where
+
+import System.Directory
+import Data.List (sort, isInfixOf)
+
+main :: IO ()
+main = do
+  files <- listDirectory "."
+  let filteredSorted = sort $ filter (".hs" `isInfixOf`) files
+  print filteredSorted
+
+-- HC13T4: SumNonEmpty Module
+module SumNonEmpty (sumNonEmpty) where
+
+sumNonEmpty :: [Int] -> Int
+sumNonEmpty [] = error "List cannot be empty"
+sumNonEmpty xs = sum xs
+
+-- HC13T5: Restrict Module Export List
+-- Already done in SumNonEmpty module above by only exporting sumNonEmpty
+
+-- HC13T6: File Names to Map
+module HC13T6 where
+
+import System.Directory
+import qualified Data.Map as Map
+import Data.List (isInfixOf)
+
+main :: IO ()
+main = do
+  files <- listDirectory "."
+  let filtered = filter (".hs" `isInfixOf`) files
+      fileMap = Map.fromList $ zip [1..] filtered
+  print fileMap
+
+-- HC13T7: Use Custom Module in Main
+module HC13T7 where
+
+import SumNonEmpty
+
+main :: IO ()
+main = print $ sumNonEmpty [1,2,3,4,5]
+
+-- HC13T8: Qualified Imports for Name Conflicts
+module HC13T8 where
+
+import qualified Data.Map as M
+import qualified Data.List as L
+
+main :: IO ()
+main = do
+  let list = [3,1,2]
+      sorted = L.sort list
+      mapped = M.fromList $ zip [1..] sorted
+  print mapped
+
+-- HC13T9: Renaming Module Namespace
+module HC13T9 where
+
+import qualified Data.Map as MapModule
+import qualified Data.List as ListModule
+
+main :: IO ()
+main = do
+  let numbers = [5,3,4]
+      sorted = ListModule.sort numbers
+      mapping = MapModule.fromList $ zip [1..] sorted
+  print mapping
+
+-- HC13T10: Multi-Module Main Function
+module HC13T10 where
+
+import System.Directory
+import qualified Data.List as L
+
+main :: IO ()
+main = do
+  files <- listDirectory "."
+  let filtered = filter (".hs" `L.isInfixOf`) files
+  print $ L.sort filtered
