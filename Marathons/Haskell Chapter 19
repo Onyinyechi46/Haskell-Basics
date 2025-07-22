@@ -1,0 +1,112 @@
+-- HC19T1: Applicative Instance for Pair
+module HC19T1 where
+
+import Control.Applicative
+
+data Pair a = Pair a a deriving (Show)
+
+instance Functor Pair where
+  fmap f (Pair x y) = Pair (f x) (f y)
+
+instance Applicative Pair where
+  pure x = Pair x x
+  Pair f g <*> Pair x y = Pair (f x) (g y)
+
+main :: IO ()
+main = print (Pair (+1) (*2) <*> Pair 3 4)
+
+
+-- HC19T2: addThreeApplicative Function
+module HC19T2 where
+
+addThreeApplicative :: Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int
+addThreeApplicative = liftA3 (\x y z -> x + y + z)
+
+main :: IO ()
+main = print (addThreeApplicative (Just 1) (Just 2) (Just 3))
+
+
+-- HC19T3: safeProduct for Maybe Int
+module HC19T3 where
+
+safeProduct :: [Maybe Int] -> Maybe Int
+safeProduct = foldr (liftA2 (*)) (Just 1)
+
+main :: IO ()
+main = print (safeProduct [Just 2, Just 3, Just 4])
+
+
+-- HC19T4: liftAndMultiply with liftA2
+module HC19T4 where
+
+import Control.Applicative (liftA2)
+
+liftAndMultiply :: Maybe Int -> Maybe Int -> Maybe Int
+liftAndMultiply = liftA2 (*)
+
+main :: IO ()
+main = print (liftAndMultiply (Just 4) (Just 5))
+
+
+-- HC19T5: applyEffects with <*>
+module HC19T5 where
+
+applyEffects :: (IO Int, IO Int) -> IO Int
+applyEffects (mx, my) = (+) <$> mx <*> my
+
+main :: IO ()
+main = applyEffects (print 2 >> return 2, print 3 >> return 3) >>= print
+
+
+-- HC19T6: repeatEffect with forever
+module HC19T6 where
+
+import Control.Monad (forever)
+
+repeatEffect :: IO ()
+repeatEffect = forever (print "Running...")
+
+main :: IO ()
+main = return () -- Avoid infinite loop during testing
+
+
+-- HC19T7: conditionalPrint with when
+module HC19T7 where
+
+import Control.Monad (when)
+
+conditionalPrint :: Bool -> IO ()
+conditionalPrint cond = when cond (print "Condition met!")
+
+main :: IO ()
+main = conditionalPrint True
+
+
+-- HC19T8: discardSecond with <*
+module HC19T8 where
+
+discardSecond :: IO a -> IO b -> IO a
+discardSecond = (<*)
+
+main :: IO ()
+main = discardSecond (print "First") (print "Second")
+
+
+-- HC19T9: pureAndApply Demonstration
+module HC19T9 where
+
+pureAndApply :: IO Int
+pureAndApply = pure (+1) <*> pure 5
+
+main :: IO ()
+main = pureAndApply >>= print
+
+
+-- HC19T10: combineResults for Either
+module HC19T10 where
+
+combineResults :: Either String Int -> Either String Int -> Either String Int
+combineResults = liftA2 (+)
+
+main :: IO ()
+main = print (combineResults (Right 3) (Right 4))
